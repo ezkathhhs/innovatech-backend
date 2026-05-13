@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # 1. Servicio de Base de Datos
+  db:
+    image: postgres:15-alpine
+    container_name: innovatech-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: innovatech_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Aquí aplicamos la persistencia
+    networks:
+      - innovatech_net
+
+  # 2. Servicio del Backend (Spring Boot)
+  backend:
+    build:
+      context: . # Construye usando el Dockerfile de esta misma carpeta
+      dockerfile: Dockerfile
+    container_name: innovatech-backend
+    environment:
+      # Se conecta usando el nombre del servicio de BD ("db")
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/innovatech_db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: password123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db # Espera a que la BD esté lista antes de iniciar
+    networks:
+      - innovatech_net
+
+  # 3. Servicio del Frontend (React + Nginx)
+  frontend:
+    build:
+      context: ../innovatech-frontend # Sube un nivel y entra a la carpeta del frontend
+      dockerfile: Dockerfile
+    container_name: innovatech-frontend
+    ports:
+      - "80:8080" # Mapea el puerto 80 de tu PC al 8080 del contenedor Nginx unprivileged
+    depends_on:
+      - backend
+    networks:
+      - innovatech_net
+
+# Configuración de red interna (aislamiento y seguridad)
+networks:
+  innovatech_net:
+    driver: bridge
+
+# Configuración de persistencia (Volúmenes)
+volumes:
+  postgres_data:
