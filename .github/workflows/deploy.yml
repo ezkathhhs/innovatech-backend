@@ -1,0 +1,42 @@
+name: CI/CD Backend Innovatech
+
+on:
+  push:
+    branches:
+      - deploy
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+
+      - name: Login en Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build y Push a Docker Hub
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/innovatech-backend:latest
+
+      # El Backend se despliega en la EC2 Privada
+      - name: Despliegue en AWS EC2 (Backend)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_BACK_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          # Usamos un bastion host o red privada (lo configuraremos en AWS)
+          script: |
+            docker pull ${{ secrets.DOCKER_USERNAME }}/innovatech-backend:latest
+            # Reiniciar servicio backend con docker-compose en la EC2
+            cd /home/${{ secrets.EC2_USER }}/app
+            docker-compose pull backend
+            docker-compose up -d backend
