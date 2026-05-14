@@ -36,13 +36,14 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Aseguramos que docker-compose esté instalado en la máquina
-            sudo apt-get update
-            sudo apt-get install docker-compose -y
-            
             cd /home/${{ secrets.EC2_USER }}
             
-            # Creamos el archivo docker-compose.yml en la EC2 de producción
+            # 1. LIMPIEZA: Detenemos y borramos contenedores viejos para evitar conflictos
+            sudo docker stop innovatech-backend || true
+            sudo docker rm innovatech-backend || true
+            sudo docker compose down || true
+            
+            # 2. Creamos el archivo docker-compose.yml en la EC2
             cat << 'EOF' > docker-compose.yml
             version: '3.8'
             services:
@@ -80,6 +81,6 @@ jobs:
               postgres_data:
             EOF
             
-            # Descargamos la imagen nueva y levantamos el stack con persistencia
+            # 3. Descargamos la imagen nueva y levantamos el stack limpio
             sudo docker compose pull backend
             sudo docker compose up -d
