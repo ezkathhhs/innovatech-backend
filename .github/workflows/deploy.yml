@@ -26,17 +26,17 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/innovatech-backend:latest
 
-      # El Backend se despliega en la EC2 Privada
       - name: Despliegue en AWS EC2 (Backend)
         uses: appleboy/ssh-action@master
         with:
+          proxy_host: ${{ secrets.EC2_FRONT_HOST }}
+          proxy_username: ${{ secrets.EC2_USER }}
+          proxy_key: ${{ secrets.EC2_SSH_KEY }}
           host: ${{ secrets.EC2_BACK_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          # Usamos un bastion host o red privada (lo configuraremos en AWS)
           script: |
             docker pull ${{ secrets.DOCKER_USERNAME }}/innovatech-backend:latest
-            # Reiniciar servicio backend con docker-compose en la EC2
-            cd /home/${{ secrets.EC2_USER }}/app
-            docker-compose pull backend
-            docker-compose up -d backend
+            docker stop innovatech-backend || true
+            docker rm innovatech-backend || true
+            docker run -d --name innovatech-backend -p 8080:8080 --network host ${{ secrets.DOCKER_USERNAME }}/innovatech-backend:latest
