@@ -36,7 +36,44 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKER_USERNAME }}/innovatech-backend:latest
-            docker stop innovatech-backend || true
-            docker rm innovatech-backend || true
-            docker run -d --name innovatech-backend -p 8080:8080 --network host ${{ secrets.DOCKER_USERNAME }}/innovatech-backend:latest
+            cd /home/${{ secrets.EC2_USER }}
+            # 1. Creamos el archivo docker-compose.yml en la EC2 de producción
+            cat << 'EOF' > docker-compose.yml
+            version: '3.8'
+            services:
+              db:
+                image: postgres:15-alpine
+                container_name: innovatech-db
+                environment:
+                  POSTGRES_USER: admin
+                  POSTGRES_PASSWORD: password123
+                  POSTGRES_DB: innovatech_db
+                ports:
+                  - "5432:5432"
+                volumes:
+                  - postgres_data:/var/lib/postgresql/data
+                networks:
+                  - innovatech_net
+              backend:
+                image: ${{ secrets.DOCKER_USERNAME }}/innovatech-backend:latest
+                container_name: innovatech-backend
+                environment:
+                  SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/innovatech_db
+                  SPRING_DATASOURCE_USERNAME: admin
+                  SPRING_DATASOURCE_PASSWORD: password123
+                  SPRING_JPA_HIBERNATE_DDL_AUTO: update
+                ports:
+                  - "8080:8080"
+                depends_on:
+                  - db
+                networks:
+                  - innovatech_net
+            networks:
+              innovatech_net:
+                driver: bridge
+            volumes:
+              postgres_data:
+            EOF
+            # 2. Descargamos la imagen nueva y levantamos el stack con persistencia
+            docker-compose pull backend
+            docker-compose up -d
