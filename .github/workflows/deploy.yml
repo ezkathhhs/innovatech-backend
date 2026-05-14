@@ -36,8 +36,13 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            # Aseguramos que docker-compose esté instalado en la máquina
+            sudo apt-get update
+            sudo apt-get install docker-compose -y
+            
             cd /home/${{ secrets.EC2_USER }}
-            # 1. Creamos el archivo docker-compose.yml en la EC2 de producción
+            
+            # Creamos el archivo docker-compose.yml en la EC2 de producción
             cat << 'EOF' > docker-compose.yml
             version: '3.8'
             services:
@@ -74,6 +79,7 @@ jobs:
             volumes:
               postgres_data:
             EOF
-            # 2. Descargamos la imagen nueva y levantamos el stack con persistencia
-            docker-compose pull backend
-            docker-compose up -d
+            
+            # Descargamos la imagen nueva y levantamos el stack con persistencia
+            sudo docker-compose pull backend
+            sudo docker-compose up -d
