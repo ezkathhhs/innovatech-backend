@@ -11,7 +11,7 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 # Solo copiamos el .jar compilado de la etapa anterior
-COPY --from=builder /app/target/backend-innovatech.jar ./app.jar
+COPY --from=builder /app/target/*.jar ./app.jar
 # Exponemos el puerto del backend (ej. 8080)
 EXPOSE 8080
 # Comando para ejecutar la aplicación
