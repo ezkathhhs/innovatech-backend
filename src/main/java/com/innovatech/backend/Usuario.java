@@ -1,4 +1,4 @@
-package com.innovatech.proyecto;
+package com.innovatech.backend;
 import jakarta.persistence.*;
 
 @Entity
