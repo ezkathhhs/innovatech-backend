@@ -40,7 +40,7 @@ public class UsuarioController {
             return ResponseEntity.status(500).body("Error al contactar al ProductoService: " + e.getMessage());
         }
     }
-    
+
     @Autowired
     private UsuarioRepository repository;
 
@@ -57,5 +57,35 @@ public class UsuarioController {
     public Usuario actualizar(@PathVariable Long id, @RequestBody Usuario usuario) {
         usuario.setId(id);
         return repository.save(usuario);
+    }
+
+    // 1. Inyectamos la herramienta de comunicación
+    @Autowired
+    private RestTemplate restTemplate;
+
+    // 2. Creamos el endpoint de integración
+    @GetMapping("/{usuarioId}/consultar-perfume/{productoId}")
+    public ResponseEntity<?> consultarPerfumeDesdeUsuario(
+            @PathVariable Long usuarioId, 
+            @PathVariable Long productoId) {
+        
+        // Usamos la URL exacta de tu Balanceador de Carga apuntando a la ruta de productos
+        String urlProducto = "http://perfulandia-alb-620512428.us-east-1.elb.amazonaws.com/api/productos/" + productoId;
+        
+        try {
+            // El UsuarioService "llama por teléfono" al ProductoService
+            Object producto = restTemplate.getForObject(urlProducto, Object.class);
+            
+            // Empaquetamos la respuesta para demostrar que ambos servicios hablaron
+            Map<String, Object> respuesta = new HashMap<>();
+            respuesta.put("idUsuarioConsulta", usuarioId);
+            respuesta.put("mensaje", "Integración exitosa: El usuario está viendo este perfume.");
+            respuesta.put("datosDelPerfume", producto);
+            
+            return ResponseEntity.ok(respuesta);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error en la integración con ProductoService: " + e.getMessage());
+        }
     }
 }
